@@ -1,7 +1,7 @@
 # CRM Login e Dashboard — Design Spec
 
 **Data:** 2026-05-14  
-**Status:** Aprovado (v2 — revisado após code review)
+**Status:** Aprovado (v3 — revisado após 2º code review)
 
 ---
 
@@ -84,7 +84,15 @@ Botão **"+ Novo Deal"** no topo do dashboard redireciona para `/deal/new`.
 | `stage` | text | `prospecting` \| `proposal` \| `negotiation` \| `closed` |
 | `notes` | text | Observações livres (opcional) |
 | `created_at` | timestamp | Gerado automaticamente via `DEFAULT now()` |
-| `updated_at` | timestamp | Atualizado automaticamente a cada edição |
+| `updated_at` | timestamp | Atualizado via trigger `BEFORE UPDATE` usando a extensão `moddatetime` do Supabase |
+
+**Trigger `updated_at`:** ativar a extensão `moddatetime` no Supabase e criar o trigger:
+```sql
+CREATE EXTENSION IF NOT EXISTS moddatetime;
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON deals
+  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+```
 
 **Row Level Security (RLS):** ativado — cada usuário acessa apenas seus próprios deals.
 
@@ -99,6 +107,18 @@ Botão **"+ Novo Deal"** no topo do dashboard redireciona para `/deal/new`.
 | `KanbanBoard` | Renderiza as 4 colunas do pipeline |
 | `DealCard` | Card compacto com nome, valor e ações |
 | `DealForm` | Formulário de criação e edição de deal (usado em `/deal/new` e `/deal/[id]`) |
+
+### Comportamento do `DealForm`
+
+| Contexto | Modo | Comportamento |
+|---|---|---|
+| `/deal/new` | Criação | Campos vazios; submit faz `INSERT`; redireciona para `/dashboard` após sucesso |
+| `/deal/[id]` | Edição | Campos pré-populados via Server Component; submit faz `UPDATE`; permanece na página após sucesso |
+
+- Modo detectado pela presença do parâmetro `id` (prop passada pela página pai)
+- Campos editáveis: `title`, `value`, `stage`, `notes`
+- Campos não editáveis: `id`, `user_id`, `created_at`, `updated_at`
+- Botão **"Cancelar"** redireciona para `/dashboard` em ambos os modos
 
 ---
 
