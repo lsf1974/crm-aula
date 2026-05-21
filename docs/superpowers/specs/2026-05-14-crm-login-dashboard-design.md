@@ -1,7 +1,7 @@
 # CRM Login e Dashboard — Design Spec
 
 **Data:** 2026-05-14  
-**Status:** Em revisão (v4 — revisado após 3º code review)
+**Status:** Aprovado (v5 — revisado após 4º code review)
 
 ---
 
@@ -74,6 +74,7 @@ Cada deal exibe: nome, valor em R$, e botões para mover entre colunas.
 - A atualização é **otimista**: o UI atualiza imediatamente via `useOptimistic` (React), enquanto a Server Action roda em background
 - Em caso de falha da Server Action: o estado local reverte para o `stage` anterior e um **toast de erro** é exibido ("Falha ao mover deal. Tente novamente.")
 - A Server Action valida que `newStage` é um valor permitido antes de executar o UPDATE
+- Após UPDATE bem-sucedido, a Server Action chama `revalidatePath('/dashboard')` para sincronizar o estado do servidor com o UI
 
 Botão **"+ Novo Deal"** no topo do dashboard redireciona para `/deal/new`.
 
