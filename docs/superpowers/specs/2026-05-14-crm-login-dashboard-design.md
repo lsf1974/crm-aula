@@ -1,7 +1,7 @@
 # CRM Login e Dashboard — Design Spec
 
 **Data:** 2026-05-14  
-**Status:** Aprovado (v3 — revisado após 2º code review)
+**Status:** Em revisão (v4 — revisado após 3º code review)
 
 ---
 
@@ -67,6 +67,14 @@ O middleware usa `matcher` para proteger apenas rotas da aplicação, excluindo 
 
 Cada deal exibe: nome, valor em R$, e botões para mover entre colunas.
 
+#### Movimento de stage no Kanban
+
+- Cada `DealCard` exibe dois botões: **"← Voltar"** e **"Avançar →"** (desabilitados nos extremos: `prospecting` não tem "Voltar", `closed` não tem "Avançar")
+- O clique aciona uma **Server Action** (`moveStage`) que executa `UPDATE deals SET stage = $newStage WHERE id = $id AND user_id = $userId`
+- A atualização é **otimista**: o UI atualiza imediatamente via `useOptimistic` (React), enquanto a Server Action roda em background
+- Em caso de falha da Server Action: o estado local reverte para o `stage` anterior e um **toast de erro** é exibido ("Falha ao mover deal. Tente novamente.")
+- A Server Action valida que `newStage` é um valor permitido antes de executar o UPDATE
+
 Botão **"+ Novo Deal"** no topo do dashboard redireciona para `/deal/new`.
 
 ---
@@ -81,7 +89,7 @@ Botão **"+ Novo Deal"** no topo do dashboard redireciona para `/deal/new`.
 | `user_id` | UUID | FK para `auth.users` do Supabase |
 | `title` | text | Nome da oportunidade |
 | `value` | numeric | Valor em R$ |
-| `stage` | text | `prospecting` \| `proposal` \| `negotiation` \| `closed` |
+| `stage` | text | `prospecting` \| `proposal` \| `negotiation` \| `closed` — enforced via `CHECK` constraint |
 | `notes` | text | Observações livres (opcional) |
 | `created_at` | timestamp | Gerado automaticamente via `DEFAULT now()` |
 | `updated_at` | timestamp | Atualizado via trigger `BEFORE UPDATE` usando a extensão `moddatetime` do Supabase |
@@ -94,7 +102,21 @@ CREATE TRIGGER set_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 ```
 
-**Row Level Security (RLS):** ativado — cada usuário acessa apenas seus próprios deals.
+**CHECK constraint no `stage`:**
+```sql
+ALTER TABLE deals
+  ADD CONSTRAINT deals_stage_check
+  CHECK (stage IN ('prospecting', 'proposal', 'negotiation', 'closed'));
+```
+
+**Row Level Security (RLS):** ativado — cada usuário acessa apenas seus próprios deals. Policy necessária:
+```sql
+ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users_own_deals" ON deals
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
 
 ---
 
