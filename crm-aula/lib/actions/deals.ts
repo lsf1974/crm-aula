@@ -15,10 +15,13 @@ export async function createDeal(
 
   if (!user) redirect('/login')
 
-  const title = formData.get('title') as string
+  const title = (formData.get('title') as string).trim()
   const value = parseFloat(formData.get('value') as string)
   const stage = formData.get('stage') as Stage
   const notes = (formData.get('notes') as string) || null
+
+  if (!title) return { error: 'Nome é obrigatório.' }
+  if (isNaN(value) || value < 0) return { error: 'Valor inválido.' }
 
   const { error } = await supabase.from('deals').insert({
     user_id: user.id,
@@ -44,10 +47,13 @@ export async function updateDeal(
 
   if (!user) redirect('/login')
 
-  const title = formData.get('title') as string
+  const title = (formData.get('title') as string).trim()
   const value = parseFloat(formData.get('value') as string)
   const stage = formData.get('stage') as Stage
   const notes = (formData.get('notes') as string) || null
+
+  if (!title) return { error: 'Nome é obrigatório.' }
+  if (isNaN(value) || value < 0) return { error: 'Valor inválido.' }
 
   const { error } = await supabase
     .from('deals')

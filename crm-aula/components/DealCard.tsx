@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition, useState } from 'react'
 import Link from 'next/link'
+import { isRedirectError } from 'next/dist/client/components/redirect'
 import { moveStage } from '@/lib/actions/kanban'
 import type { Deal, Stage } from '@/types'
 import { STAGES } from '@/types'
@@ -30,7 +31,8 @@ export function DealCard({ deal }: Props) {
       try {
         await moveStage(deal.id, newStage)
         setError(null)
-      } catch {
+      } catch (err) {
+        if (isRedirectError(err)) throw err
         setError('Falha ao mover deal. Tente novamente.')
       }
     })
